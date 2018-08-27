@@ -1,11 +1,18 @@
 <template>
   <div id="wrapper">
     <h1>Camera recorder</h1>
-    <img id="logo" src="~@/assets/logo.png" alt="electron-vue">
     <main>
       <div class="webcam">
+        <div>
+          Monitor
+        </div>
         <video ref="monitor" playsinline></video>
-        <video ref="replay" playsinline></video>
+      </div>
+      <div class="playback">
+        <div>
+          Playback
+        </div>
+        <video ref="playback" playsinline></video>
       </div>
     </main>
   </div>
@@ -23,7 +30,7 @@
       return {
         stream: null,
         videoMonitor: null,
-        videoReplay: null
+        videoPlayback: null
       }
     },
     computed: {
@@ -41,7 +48,7 @@
         'p': this.togglePlayback
       }
       this.videoMonitor = this.$refs.monitor
-      this.videoReplay = this.$refs.replay
+      this.videoPlayback = this.$refs.playback
       document.onkeypress = this.keyPressed
       this.initWebcam()
     },
@@ -88,7 +95,7 @@
       stopRecording () {
         VERBOSE && console.log('stopRecording')
         recorder.stopRecording()
-        this.videoReplay.src = recorder.url()
+        this.videoPlayback.src = recorder.url()
       },
       keyPressed (evt) {
         evt = evt || window.event
@@ -107,7 +114,7 @@
         }
       },
       togglePlayback () {
-        this.videoReplay.play()
+        this.videoPlayback.play()
       }
     }
   }
@@ -124,6 +131,13 @@
 
   body { font-family: 'Source Sans Pro', sans-serif; }
 
+  h1 {
+    font-size: 80px;
+    font-weight: bold;
+    padding-bottom: 2vh;
+    text-transform: uppercase;
+  }
+
   #wrapper {
     background:
       radial-gradient(
@@ -136,16 +150,11 @@
     width: 100vw;
   }
 
-  #logo {
-    height: auto;
-    margin-bottom: 20px;
-    width: 420px;
-  }
-
   main {
-    display: flex;
-    justify-content: space-between;
+    /* display: flex; */
+    /* justify-content: space-between; */
+    font-size: 50px;
+    text-transform: uppercase;
+    color: darkcyan;
   }
-
-  main > div { flex-basis: 50%; }
 </style>
