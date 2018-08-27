@@ -1,5 +1,6 @@
 <template>
   <div id="wrapper">
+    <h1>Camera recorder</h1>
     <img id="logo" src="~@/assets/logo.png" alt="electron-vue">
     <main>
       <div class="webcam">
@@ -36,7 +37,8 @@
     },
     mounted () {
       this.commands = {
-        ' ': this.toggleRecording
+        ' ': this.toggleRecording,
+        'p': this.togglePlayback
       }
       this.videoMonitor = this.$refs.monitor
       this.videoReplay = this.$refs.replay
@@ -103,6 +105,9 @@
         } else {
           this.startRecording()
         }
+      },
+      togglePlayback () {
+        this.videoReplay.play()
       }
     }
   }
