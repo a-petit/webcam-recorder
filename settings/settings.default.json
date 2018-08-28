@@ -39,24 +39,6 @@
       {"name": "720p",  "value": {"width": {"exact": 1280}, "height": {"exact": 720}}},
       {"name": "1080p", "value": {"width": {"exact": 1920}, "height": {"exact": 1080}}},
       {"name": "4K",    "value": {"width": {"exact": 4096}, "height": {"exact": 2160}}}
-    ],
-    "input": {
-      "width": {
-        "min": 1280,
-        "max": 1920,
-        "ideal": 1920
-      },
-      "height": {
-        "min": 720,
-        "ideal": 1080
-      },
-      "facingMode": "user",
-      "zoom": 1
-    },
-    "output": {
-      "background": "#000000",
-      "width": 1920,
-      "height": 1080
-    }
+    ]
   }
 }
