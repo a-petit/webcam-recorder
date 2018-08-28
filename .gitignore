@@ -9,3 +9,6 @@ npm-debug.log.*
 thumbs.db
 !.gitkeep
 settings/settings.json
+exports/*
+src/renderer/lib/renderer.js
+
