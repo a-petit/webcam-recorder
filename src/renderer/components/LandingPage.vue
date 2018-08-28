@@ -2,6 +2,10 @@
   <div id="wrapper">
     <h1>Camera recorder</h1>
     <div v-show="interactive">
+      <div class="select">
+          <label for="videoSource">Video source: </label>
+          <select id="videoSource" ref="videoSelect" v-model="cameraID" :on-change="initWebcam"></select>
+      </div>
       <button id="autotest" v-on:click="startAutoTest">
         autotest
       </button>
@@ -14,7 +18,7 @@
       <button v-on:click="download">
         download
       </button>
-      <select v-model="resolutionID">
+      <select v-model="resolutionID" :on-change="initWebcam">
         <option v-for="(option, index) in resolutions" v-bind:value="index">
           {{ option.name }}
         </option>
@@ -50,8 +54,8 @@
         stream: null,
         duration: 5000,
         autotesting: false,
-        currentResolution: null,
-        resolutionID: null,
+        resolutionID: 3,
+        cameraID: '',
         recording: false,
         displayMonitor: true,
         displayPlayback: true
@@ -65,6 +69,9 @@
           return null
         }
       },
+      currentResolution () {
+        return settings.camera.resolutions[this.resolutionID]
+      },
       resolutions () {
         return settings.camera.resolutions
       },
@@ -74,18 +81,21 @@
     },
     watch: {
       resolutionID (id) {
-        this.currentResolution = this.resolutions[id]
-        let constraints = {
-          audio: false,
-          video: this.currentResolution.value
-        }
-        this.initWebcam(constraints)
+        this.initWebcam()
       },
       interactive (value) {
         document.onkeypress = value ? this.keyPressed : null
       }
     },
     mounted () {
+      // Using the new API, @see
+      // https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+      // for backward compatibility
+      if (navigator.mediaDevices === undefined) {
+        console.warn('Browser\'s version is too old')
+        return
+      }
+
       this.commands = {
         ' ': this.toggleRecording,
         'p': this.togglePlayback,
@@ -95,22 +105,40 @@
       window.recorder = recorder
       window.vm = this
 
-      this.resolutionID = 0
+      navigator.mediaDevices.enumerateDevices().then(this.initDevices)
+
+      this.initWebcam()
     },
     methods: {
-      initWebcam (constraints) {
-        VERBOSE && console.log('initWebcam: ' + JSON.stringify(constraints, null, 2))
-        // Using the new API, @see
-        // https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
-        // for backward compatibility
-        if (navigator.mediaDevices === undefined) {
-          console.warn('Browser\'s version is too old')
+      initDevices (deviceInfos) {
+        let videoSelect = this.$refs.videoSelect
+        for (let i = 0; i !== deviceInfos.length; ++i) {
+          let deviceInfo = deviceInfos[i]
+          let option = document.createElement('option')
+          option.value = deviceInfo.deviceId
+          if (deviceInfo.kind === 'videoinput') {
+            option.text = deviceInfo.label || 'camera ' + (videoSelect.length + 1)
+            videoSelect.appendChild(option)
+          }
         }
-
+      },
+      initWebcam () {
         if (this.stream) {
           this.stream.getTracks().forEach(track => {
             track.stop()
           })
+        }
+
+        console.log('cam:', this.$refs.videoSelect.value, this.cameraID)
+
+        let constraints = {
+          video: {
+            width: this.currentResolution.value.width,
+            height: this.currentResolution.value.height,
+            deviceId: {
+              exact: this.$refs.videoSelect.value
+            }
+          }
         }
 
         let vm = this
@@ -181,8 +209,8 @@
       //
       keyPressed (evt) {
         evt = evt || window.event
-        var charCode = evt.keyCode || evt.which
-        var charStr = String.fromCharCode(charCode)
+        let charCode = evt.keyCode || evt.which
+        let charStr = String.fromCharCode(charCode)
         // console.log('key pressed:', charStr)
         if (this.commands[charStr]) {
           this.commands[charStr]()
