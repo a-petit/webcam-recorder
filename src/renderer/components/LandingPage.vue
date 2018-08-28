@@ -1,11 +1,13 @@
 <template>
   <div id="wrapper">
     <h1>Camera recorder</h1>
-    <div v-show="interactive">
-      <div class="select">
-          <label for="videoSource">Video source: </label>
-          <select id="videoSource" ref="videoSelect" v-model="cameraID" :on-change="initWebcam"></select>
-      </div>
+    <div id="gui" v-show="interactive">
+      <select id="videoSource" ref="videoSelect" v-model="cameraID"></select>
+      <select v-model="resolutionID">
+        <option v-for="(option, index) in resolutions" v-bind:value="index">
+          {{ option.name }}
+        </option>
+      </select>
       <button id="autotest" v-on:click="startAutoTest">
         autotest
       </button>
@@ -18,15 +20,10 @@
       <button v-on:click="download">
         download
       </button>
-      <select v-model="resolutionID" :on-change="initWebcam">
-        <option v-for="(option, index) in resolutions" v-bind:value="index">
-          {{ option.name }}
-        </option>
-      </select>
       <input type="checkbox" id="check-monitor" v-model="displayMonitor">
-      <label for="check-monitor">display monitor</label>
+      <label for="check-monitor">Monitor</label>
       <input type="checkbox" id="check-playback" v-model="displayPlayback">
-      <label for="check-playback">display playback</label>
+      <label for="check-playback">Playback</label>
     </div>
     <main>
       <div v-show="displayMonitor" class="monitor">
@@ -83,6 +80,9 @@
       resolutionID (id) {
         this.initWebcam()
       },
+      cameraID (id) {
+        this.initWebcam()
+      },
       interactive (value) {
         document.onkeypress = value ? this.keyPressed : null
       }
@@ -132,14 +132,16 @@
         console.log('cam:', this.$refs.videoSelect.value, this.cameraID)
 
         let constraints = {
-          video: {
-            width: this.currentResolution.value.width,
-            height: this.currentResolution.value.height,
-            deviceId: {
-              exact: this.$refs.videoSelect.value
-            }
-          }
+          audio: false,
+          video: this.currentResolution.value
         }
+
+        if (this.cameraID !== '') {
+          console.log('!==')
+          constraints.video.deviceId = this.cameraID
+        }
+
+        console.log(JSON.stringify(constraints, null, 2))
 
         let vm = this
         navigator.mediaDevices.getUserMedia(constraints)
