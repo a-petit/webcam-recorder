@@ -102,19 +102,15 @@ export default {
     let url = window.URL.createObjectURL(blob)
     return url
   },
-  download () {
+  download (name) {
     VERBOSE && console.log('Download requested')
     dataAssertionsCheck()
-    if (!this.areDatasAccessible()) {
-      console.warn('Accessing data')
-    }
-
     const blob = new Blob(recordedBlobs, {type: 'video/webm'})
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.style.display = 'none'
     a.href = url
-    a.download = 'test.webm'
+    a.download = 'test-' + name + '.webm'
     document.body.appendChild(a)
     a.click()
     setTimeout(() => {

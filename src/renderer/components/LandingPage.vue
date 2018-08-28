@@ -12,7 +12,7 @@
         <div>
           Playback
         </div>
-        <video ref="playback" playsinline></video>
+        <video ref="playback" playsinline controls></video>
       </div>
     </main>
   </div>
@@ -29,8 +29,22 @@
     data () {
       return {
         stream: null,
+        testing: true,
+        duration: 5000,
         videoMonitor: null,
-        videoPlayback: null
+        videoPlayback: null,
+        currentResolution: null,
+        resolutions: [
+          {name: 'QVGA', value: {width: {exact: 320}, height: {exact: 240}}},
+          {name: 'VGA', value: {width: {exact: 320}, height: {exact: 240}}},
+          {name: 'HD', value: {width: {exact: 1280}, height: {exact: 720}}},
+          {name: 'FULL-HD', value: {width: {exact: 1920}, height: {exact: 1080}}},
+          // {name: '2K', value: '2048x1080'},
+          // {name: 'WQHD', value: '2650x1440'},
+          // {name: 'UHD-1', value: '3840x2160'},
+          {name: '4K', value: {width: {exact: 4096}, height: {exact: 2160}}},
+          {name: '8K', value: {width: {exact: 7680}, height: {exact: 4320}}}
+        ]
       }
     },
     computed: {
@@ -43,25 +57,26 @@
       }
     },
     mounted () {
-      this.commands = {
-        ' ': this.toggleRecording,
-        'p': this.togglePlayback
+      if (this.testing) {
+        this.commands = {}
+      } else {
+        this.commands = {
+          ' ': this.toggleRecording,
+          'p': this.togglePlayback
+        }
       }
+
       this.videoMonitor = this.$refs.monitor
       this.videoPlayback = this.$refs.playback
       document.onkeypress = this.keyPressed
-      this.initWebcam()
+      if (this.testing) {
+        this.initNextTest()
+      } else {
+        this.initRegular()
+      }
     },
     methods: {
-      initWebcam () {
-        VERBOSE && console.log('initWebcam')
-        // Using the new API, @see
-        // https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
-        // for backward compatibility
-        if (navigator.mediaDevices === undefined) {
-          console.warn('Browser\'s version is too old')
-        }
-
+      initRegular () {
         let constraints = {
           audio: false,
           video: {
@@ -69,7 +84,38 @@
             height: settings.camera.input.height
           }
         }
+        this.initWebcam(constraints)
+      },
+      initNextTest () {
+        if (!this.testID) {
+          this.testID = 0
+        }
+        if (this.testID >= this.resolutions.length) {
+          return
+        }
 
+        this.currentResolution = this.resolutions[this.testID]
+
+        let constraints = {
+          audio: false,
+          video: this.currentResolution.value
+        }
+        this.initWebcam(constraints)
+        this.testID = this.testID + 1
+      },
+      initWebcam (constraints) {
+        VERBOSE && console.log('initWebcam: ' + JSON.stringify(constraints, null, 2))
+        // Using the new API, @see
+        // https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+        // for backward compatibility
+        if (navigator.mediaDevices === undefined) {
+          console.warn('Browser\'s version is too old')
+        }
+        if (this.stream) {
+          this.stream.getTracks().forEach(track => {
+            track.stop()
+          })
+        }
         let vm = this
         navigator.mediaDevices.getUserMedia(constraints)
           .then(function (stream) {
@@ -87,15 +133,25 @@
         VERBOSE && console.log('playWebcam')
         this.videoMonitor.srcObject = stream
         this.videoMonitor.play()
+        if (this.testing) {
+          this.startRecording()
+        }
       },
       startRecording () {
         VERBOSE && console.log('startRecording')
         recorder.startRecording(this.stream)
+        if (this.testing) {
+          setTimeout(this.stopRecording, this.duration)
+        }
       },
       stopRecording () {
         VERBOSE && console.log('stopRecording')
         recorder.stopRecording()
         this.videoPlayback.src = recorder.url()
+        recorder.download(this.currentResolution.name)
+        if (this.testing) {
+          setTimeout(this.initNextTest, this.duration)
+        }
       },
       keyPressed (evt) {
         evt = evt || window.event
