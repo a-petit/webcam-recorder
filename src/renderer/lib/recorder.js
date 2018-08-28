@@ -14,13 +14,6 @@ let recordedBlobs = null
 let recordResolution = {}
 let blobUrl = null
 
-let clear = () => {
-  if (blobUrl) {
-    URL.revokeObjectURL(blobUrl)
-    blobUrl = null
-  }
-}
-
 let dataAssertionsCheck = (recorder) => {
   if (mediaRecorder === null || mediaRecorder.state !== 'inactive') {
     console.warn('the recorder hasn\'t record anything or is still recording')
@@ -35,8 +28,18 @@ let handleStop = () => {
 }
 
 export default {
+  flush () {
+    if (blobUrl) {
+      URL.revokeObjectURL(blobUrl)
+      blobUrl = null
+    }
+    mediaStream = null
+    mediaRecorder = null
+    recordedBlobs = null
+    recordResolution = {}
+  },
   startRecording (stream) {
-    clear()
+    this.flush()
     mediaStream = stream
 
     // let $this = this

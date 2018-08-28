@@ -2,13 +2,14 @@
   <div id="wrapper">
     <h1>Camera recorder</h1>
     <div id="gui" v-show="interactive">
-      <select id="videoSource" ref="videoSelect" v-model="cameraID"></select>
-      <select v-model="resolutionID">
+      <select id="videoSource" ref="videoSelect" v-model="deviceID" :disabled="recording">
+      </select>
+      <select v-model="resolutionID" :disabled="recording">
         <option v-for="(option, index) in resolutions" v-bind:value="index">
           {{ option.name }}
         </option>
       </select>
-      <button id="autotest" v-on:click="startAutoTest">
+      <button id="autotest" v-on:click="startAutoTest" :disabled="recording">
         autotest
       </button>
       <button v-if="!recording" v-on:click="startRecording">
@@ -17,7 +18,7 @@
       <button v-else v-on:click="stopRecording">
         stop
       </button>
-      <button v-on:click="download">
+      <button v-on:click="download" :disabled="recording">
         download
       </button>
       <input type="checkbox" id="check-monitor" v-model="displayMonitor">
@@ -30,7 +31,7 @@
         <div>Monitor</div>
         <video ref="monitor" playsinline></video>
       </div>
-      <div v-show="displayPlayback" class="playback">
+      <div v-show="displayPlayback && interactive" class="playback">
         <div>Playback</div>
         <video ref="playback" playsinline controls></video>
       </div>
@@ -42,7 +43,7 @@
   import settings from '@/lib/settings'
   import recorder from '@/lib/recorder'
 
-  let VERBOSE = true
+  let VERBOSE = false
 
   export default {
     name: 'landing-page',
@@ -51,8 +52,8 @@
         stream: null,
         duration: 5000,
         autotesting: false,
-        resolutionID: 3,
-        cameraID: '',
+        resolutionID: 2,
+        deviceID: '',
         recording: false,
         displayMonitor: true,
         displayPlayback: true
@@ -80,7 +81,7 @@
       resolutionID (id) {
         this.initWebcam()
       },
-      cameraID (id) {
+      deviceID (id) {
         this.initWebcam()
       },
       interactive (value) {
@@ -110,6 +111,15 @@
       this.initWebcam()
     },
     methods: {
+      getCameraName (id) {
+        let opts = this.$refs.videoSelect.options
+        for (let i = 0; i < opts.length; i++) {
+          let opt = opts[i]
+          if (opt.value === id) {
+            return opt.text
+          }
+        }
+      },
       initDevices (deviceInfos) {
         let videoSelect = this.$refs.videoSelect
         for (let i = 0; i !== deviceInfos.length; ++i) {
@@ -124,32 +134,33 @@
       },
       initWebcam () {
         if (this.stream) {
+          recorder.flush()
+          this.$refs.playback.src = ''
           this.stream.getTracks().forEach(track => {
             track.stop()
           })
         }
 
-        console.log('cam:', this.$refs.videoSelect.value, this.cameraID)
-
         let constraints = {
           audio: false,
           video: this.currentResolution.value
         }
-
-        if (this.cameraID !== '') {
-          console.log('!==')
-          constraints.video.deviceId = this.cameraID
+        if (this.deviceID !== '') {
+          constraints.video.deviceId = this.deviceID
         }
 
-        console.log(JSON.stringify(constraints, null, 2))
+        // console.log(JSON.stringify(constraints, null, 2))
 
         let vm = this
         navigator.mediaDevices.getUserMedia(constraints)
           .then(function (stream) {
             vm.stream = stream
-            console.log('Found camera with settings: ' +
-              JSON.stringify(vm.cameraSettings, null, 2)
-            )
+            let settings = stream.getVideoTracks()[0].getSettings()
+            console.log('Found camera with settings: ' + JSON.stringify(settings, null, 2))
+            if (vm.deviceID !== settings.deviceId) {
+              vm.deviceID = settings.deviceId
+              return
+            }
             vm.playWebcam(stream)
           })
           .catch(function (err) {
@@ -204,7 +215,8 @@
         if (!recorder.isVideoAvailable()) {
           return
         }
-        recorder.download(this.currentResolution.name)
+        let tag = this.getCameraName(this.deviceID) + '-' + this.currentResolution.name
+        recorder.download(tag)
       },
       //
       // - Handle keyboard events
