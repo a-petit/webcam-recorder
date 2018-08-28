@@ -137,7 +137,11 @@
       },
       startAutoTest () {
         this.autotesting = true
-        this.resolutionID = 0
+        if (this.resolutionID === 0) {
+          this.startRecording()
+        } else {
+          this.resolutionID = 0
+        }
       },
       nextTest () {
         if (this.resolutionID >= this.resolutions.length - 1) {
