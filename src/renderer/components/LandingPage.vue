@@ -1,24 +1,29 @@
 <template>
   <div id="wrapper">
     <h1>Camera recorder</h1>
-    <button v-if="!recording" :disabled="!interactive" v-on:click="startRecording">
-      record
-    </button>
-    <button v-else :disabled="!interactive" v-on:click="stopRecording">
-      stop
-    </button>
-    <button :disabled="!interactive" v-on:click="download">
-      download
-    </button>
-    <select v-model="resolutionID">
-      <option v-for="(option, index) in resolutions" v-bind:value="index">
-        {{ option.name }}
-      </option>
-    </select>
-    <input type="checkbox" id="check-monitor" v-model="displayMonitor">
-    <label for="check-monitor">display monitor</label>
-    <input type="checkbox" id="check-playback" v-model="displayPlayback">
-    <label for="check-playback">display playback</label>
+    <div v-show="interactive">
+      <button id="autotest" v-on:click="startAutoTest">
+        autotest
+      </button>
+      <button v-if="!recording" v-on:click="startRecording">
+        record
+      </button>
+      <button v-else v-on:click="stopRecording">
+        stop
+      </button>
+      <button v-on:click="download">
+        download
+      </button>
+      <select v-model="resolutionID">
+        <option v-for="(option, index) in resolutions" v-bind:value="index">
+          {{ option.name }}
+        </option>
+      </select>
+      <input type="checkbox" id="check-monitor" v-model="displayMonitor">
+      <label for="check-monitor">display monitor</label>
+      <input type="checkbox" id="check-playback" v-model="displayPlayback">
+      <label for="check-playback">display playback</label>
+    </div>
     <main>
       <div v-show="displayMonitor" class="monitor">
         <div>Monitor</div>
@@ -44,6 +49,7 @@
       return {
         stream: null,
         duration: 5000,
+        autotesting: false,
         currentResolution: null,
         resolutionID: null,
         recording: false,
@@ -63,10 +69,7 @@
         return settings.camera.resolutions
       },
       interactive () {
-        return !settings.autotest.enabled
-      },
-      autotesting () {
-        return settings.autotest.enabled
+        return !this.autotesting
       }
     },
     watch: {
@@ -77,6 +80,9 @@
           video: this.currentResolution.value
         }
         this.initWebcam(constraints)
+      },
+      interactive (value) {
+        document.onkeypress = value ? this.keyPressed : null
       }
     },
     mounted () {
@@ -87,21 +93,11 @@
       }
 
       window.recorder = recorder
-
-      if (this.interactive) {
-        document.onkeypress = this.keyPressed
-      }
+      window.vm = this
 
       this.resolutionID = 0
     },
     methods: {
-      nextTest () {
-        if (this.testID >= this.resolutions.length) {
-          return
-        }
-        this.testID = this.testID + 1
-        this.currentResolution = this.resolutions[this.testID]
-      },
       initWebcam (constraints) {
         VERBOSE && console.log('initWebcam: ' + JSON.stringify(constraints, null, 2))
         // Using the new API, @see
@@ -139,13 +135,24 @@
           this.startRecording()
         }
       },
+      startAutoTest () {
+        this.autotesting = true
+        this.resolutionID = 0
+      },
+      nextTest () {
+        if (this.resolutionID >= this.resolutions.length - 1) {
+          this.autotesting = false
+          return
+        }
+        this.resolutionID = this.resolutionID + 1
+      },
       startRecording () {
         VERBOSE && console.log('startRecording')
         recorder.startRecording(this.stream)
         this.recording = true
 
         if (this.autotesting) {
-          setTimeout(this.stopRecording, this.duration)
+          setTimeout(this.stopRecording, settings.autotest.duration)
         }
       },
       stopRecording () {
@@ -156,7 +163,7 @@
 
         if (this.autotesting) {
           this.download()
-          setTimeout(this.initNextTest, this.duration)
+          setTimeout(this.nextTest, settings.autotest.wait)
         }
       },
       download () {
@@ -219,6 +226,10 @@
     color: white;
     border: none;
   }
+
+   #autotest {
+     background-color: slateblue;
+   }
 
   #wrapper {
     background:

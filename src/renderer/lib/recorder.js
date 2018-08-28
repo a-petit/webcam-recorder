@@ -6,7 +6,7 @@
  * - Handle the revocation of created blob's url
  */
 
-const VERBOSE = true
+const VERBOSE = false
 
 let mediaStream = null
 let mediaRecorder = null

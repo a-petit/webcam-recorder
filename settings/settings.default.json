@@ -29,8 +29,8 @@
     "cacheFirst": false
   },
   "autotest": {
-    "enabled": false,
-    "duration": 5000
+    "duration": 5000,
+    "wait": 2000
   },
   "camera": {
     "resolutions": [
