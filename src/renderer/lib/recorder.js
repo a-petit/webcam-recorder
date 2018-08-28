@@ -21,7 +21,7 @@ let clear = () => {
   }
 }
 
-let dataAssertionsCheck = () => {
+let dataAssertionsCheck = (recorder) => {
   if (mediaRecorder === null || mediaRecorder.state !== 'inactive') {
     console.warn('the recorder hasn\'t record anything or is still recording')
   }
@@ -95,16 +95,19 @@ export default {
   isRecording () {
     return mediaRecorder !== null && mediaRecorder.state !== 'inactive'
   },
+  isVideoAvailable () {
+    return !this.isRecording() && recordedBlobs != null && recordedBlobs.length !== 0
+  },
   url () {
     VERBOSE && console.log('URL requested')
-    dataAssertionsCheck()
+    dataAssertionsCheck(this)
     let blob = new Blob(recordedBlobs, {type: 'video/webm'})
     let url = window.URL.createObjectURL(blob)
     return url
   },
   download (name) {
     VERBOSE && console.log('Download requested')
-    dataAssertionsCheck()
+    dataAssertionsCheck(this)
     const blob = new Blob(recordedBlobs, {type: 'video/webm'})
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')

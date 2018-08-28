@@ -28,7 +28,18 @@
     "enable": false,
     "cacheFirst": false
   },
+  "autotest": {
+    "enabled": false,
+    "duration": 5000
+  },
   "camera": {
+    "resolutions": [
+      {"name": "QVGA",  "value": {"width": {"exact": 320},  "height": {"exact": 240}}},
+      {"name": "VGA",   "value": {"width": {"exact": 640},  "height": {"exact": 480}}},
+      {"name": "720p",  "value": {"width": {"exact": 1280}, "height": {"exact": 720}}},
+      {"name": "1080p", "value": {"width": {"exact": 1920}, "height": {"exact": 1080}}},
+      {"name": "4K",    "value": {"width": {"exact": 4096}, "height": {"exact": 2160}}}
+    ],
     "input": {
       "width": {
         "min": 1280,
