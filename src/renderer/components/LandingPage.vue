@@ -23,14 +23,22 @@
       </button>
       <input type="checkbox" id="check-monitor" v-model="displayMonitor">
       <label for="check-monitor">Monitor</label>
+      <input type="checkbox" id="check-render" v-model="displayRender" v-show="performPreRendering">
+      <label for="check-playback" v-show="performPreRendering">Render</label>
       <input type="checkbox" id="check-playback" v-model="displayPlayback">
       <label for="check-playback">Playback</label>
+      <input type="checkbox" id="check-rendering" v-model="performPreRendering">
+      <label for="check-playback">Pre-rendering</label>
     </div>
     <main>
       <div v-show="displayMonitor" class="monitor">
         <div>Monitor</div>
         <video ref="monitor" playsinline></video>
       </div>
+        <div v-show="displayRender && performPreRendering" class="monitor">
+          <div>Render</div>
+          <canvas ref="videoCanvas"></canvas>
+        </div>
       <div v-show="displayPlayback && interactive" class="playback">
         <div>Playback</div>
         <video ref="playback" playsinline controls></video>
@@ -42,6 +50,7 @@
 <script>
   import settings from '@/lib/settings'
   import recorder from '@/lib/recorder'
+  import Renderer from '@/lib/renderer'
 
   let VERBOSE = false
 
@@ -56,7 +65,10 @@
         deviceID: '',
         recording: false,
         displayMonitor: true,
-        displayPlayback: true
+        displayPlayback: true,
+        displayRender: true,
+        aoiFactor: 0.70,
+        performPreRendering: true
       }
     },
     computed: {
@@ -84,8 +96,11 @@
       deviceID (id) {
         this.initWebcam()
       },
+      performPreRendering (value) {
+        this.initWebcam()
+      },
       interactive (value) {
-        document.onkeypress = value ? this.keyPressed : null
+        this.setHandleKeyboard(value)
       }
     },
     mounted () {
@@ -108,6 +123,9 @@
 
       navigator.mediaDevices.enumerateDevices().then(this.initDevices)
 
+      document.onkeypress = this.keyPressed
+
+      this.setHandleKeyboard(true)
       this.initWebcam()
     },
     methods: {
@@ -170,6 +188,7 @@
       playWebcam (stream) {
         VERBOSE && console.log('playWebcam')
         this.$refs.monitor.srcObject = stream
+        this.$refs.monitor.onloadedmetadata = this.performPreRendering ? this.startVideo2Canvas : null
         this.$refs.monitor.play()
 
         if (this.autotesting) {
@@ -193,7 +212,11 @@
       },
       startRecording () {
         VERBOSE && console.log('startRecording')
-        recorder.startRecording(this.stream)
+        if (this.performPreRendering) {
+          recorder.startRecording(this.$refs.videoCanvas.captureStream())
+        } else {
+          recorder.startRecording(this.stream)
+        }
         this.recording = true
 
         if (this.autotesting) {
@@ -219,8 +242,42 @@
         recorder.download(tag)
       },
       //
+      // - Intermediary Rendering
+      //
+      startVideo2Canvas () {
+        let src = this.$refs.monitor
+        let dst = this.$refs.videoCanvas
+        // let aoi = settings.camera.areaOfInterest
+        let aoi = {
+          width: this.cameraSettings.width * this.aoiFactor,
+          height: this.cameraSettings.height * this.aoiFactor
+        }
+        // let out = settings.camera.output
+        let out = {
+          width: this.cameraSettings.width,
+          height: this.cameraSettings.height
+        }
+        let zoom = 1
+        let renderer = new Renderer(src, dst, aoi, out, zoom)
+        renderer.setMirror(settings.camera.mirror)
+        window.renderer = renderer
+
+        let draw = () => {
+          if (!this.performPreRendering) {
+            return
+          }
+          renderer.draw()
+          requestAnimationFrame(draw)
+        }
+
+        requestAnimationFrame(draw)
+      },
+      //
       // - Handle keyboard events
       //
+      setHandleKeyboard (value) {
+        document.onkeypress = value ? this.keyPressed : null
+      },
       keyPressed (evt) {
         evt = evt || window.event
         let charCode = evt.keyCode || evt.which
@@ -251,6 +308,7 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    text-transform: uppercase;
   }
 
   body { font-family: 'Source Sans Pro', sans-serif; }
@@ -259,18 +317,27 @@
     font-size: 80px;
     font-weight: bold;
     padding-bottom: 2vh;
-    text-transform: uppercase;
   }
 
   button, select {
     margin-right: 1vh;
     font-size: 30px;
     width: 10vw;
-    text-transform: uppercase;
     padding: 6px;
     background-color: slategrey;
     color: white;
     border: none;
+  }
+
+  input, label {
+    font-size: 30px;
+    min-height: 30px;
+    min-width: 30px;
+
+  }
+
+  label {
+    margin-right: 15px;
   }
 
    #autotest {
@@ -285,7 +352,7 @@
         rgba(229, 229, 229, .9) 100%
       );
     height: 100vh;
-    padding: 60px 80px;
+    padding: 40px 60px;
     width: 100vw;
   }
 
@@ -293,7 +360,6 @@
     /* display: flex; */
     /* justify-content: space-between; */
     font-size: 50px;
-    text-transform: uppercase;
     color: darkcyan;
   }
 
