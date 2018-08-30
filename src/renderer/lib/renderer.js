@@ -65,7 +65,7 @@ export default class Renderer {
 
     this.isMirror = false
 
-    console.log('Render stream with settings: ' + JSON.stringify(this, null, 2))
+    // console.log('Render stream with settings: ' + JSON.stringify(this, null, 2))
   }
 
   setConstraints (area) {

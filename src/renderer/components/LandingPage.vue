@@ -61,14 +61,14 @@
         stream: null,
         duration: 5000,
         autotesting: false,
-        resolutionID: 2,
+        resolutionID: 3,
         deviceID: '',
         recording: false,
         displayMonitor: true,
         displayPlayback: true,
         displayRender: true,
         aoiFactor: 0.70,
-        performPreRendering: true
+        performPreRendering: false
       }
     },
     computed: {
@@ -104,9 +104,6 @@
       }
     },
     mounted () {
-      // Using the new API, @see
-      // https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
-      // for backward compatibility
       if (navigator.mediaDevices === undefined) {
         console.warn('Browser\'s version is too old')
         return
@@ -238,7 +235,11 @@
         if (!recorder.isVideoAvailable()) {
           return
         }
-        let tag = this.getCameraName(this.deviceID) + '-' + this.currentResolution.name
+        let tag = this.getCameraName(this.deviceID)
+        if (this.performPreRendering) {
+          tag += '-prerendered'
+        }
+        tag += '-' + this.currentResolution.name
         recorder.download(tag)
       },
       //
